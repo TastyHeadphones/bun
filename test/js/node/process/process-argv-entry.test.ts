@@ -268,15 +268,13 @@ describe.concurrent("process.argv[1] is path.resolve of the entry argument", () 
     expect(exitCode).toBe(0);
   });
 
-  // Shells and editors hand Windows processes a cwd like `c:\proj`. That is the
-  // same path as `C:\proj`, so argv[1] stays equal to Bun.main.
+  // A Windows process can start in `C:\x\proj` when the directory on disk is
+  // `C:\x\Proj`. That is the same path, so argv[1] stays equal to Bun.main.
   test.skipIf(!isWindows)("a cwd spelled in another case is not a symlink", async () => {
-    using dir = tempDir("argv-case", { "foo.mjs": printEntry });
-    const root = String(dir);
-    const fooPath = join(root, "foo.mjs");
-    expect(root.toLowerCase()).not.toBe(root);
+    using dir = tempDir("argv-case", { "Proj/foo.mjs": printEntry });
+    const fooPath = join(String(dir), "Proj", "foo.mjs");
 
-    const { stdout, stderr, exitCode } = await run(root.toLowerCase(), "foo.mjs");
+    const { stdout, stderr, exitCode } = await run(join(String(dir), "proj"), "foo.mjs");
 
     expect(stderr).toBe("");
     expect(JSON.parse(stdout)).toEqual({
