@@ -1,5 +1,4 @@
 use bstr::BStr;
-use bun_paths::AutoAbsPath;
 use bun_semver::String;
 use bun_semver::string::Builder as StringBuilderNs;
 
@@ -16,10 +15,9 @@ pub(crate) fn workspace_is_missing_on_disk(
     let Some(workspace_path) = lockfile.workspace_paths.get(&workspace_name_hash).copied() else {
         return false;
     };
-    let mut package_json_path: AutoAbsPath = AutoAbsPath::init_top_level_dir();
-    let _ =
-        package_json_path.append(workspace_path.slice(lockfile.buffers.string_bytes.as_slice()));
-    let _ = package_json_path.append(b"package.json");
+    let Some(mut package_json_path) = lockfile.workspace_package_json_path(workspace_path) else {
+        return true;
+    };
     !bun_sys::exists_z(package_json_path.slice_z())
 }
 

@@ -12,7 +12,7 @@ use bun_collections::{
 };
 use bun_core::fmt::PathSep;
 use bun_core::{Global, Output};
-use bun_paths::{MAX_PATH_BYTES, SEP, SEP_STR, platform, resolve_path};
+use bun_paths::{AutoAbsPathChecked, MAX_PATH_BYTES, SEP, SEP_STR, platform, resolve_path};
 // `bun_install` sits above `bun_resolver` in the crate graph (no cycle), so use
 // the real resolver `FileSystem` directly — same as `PackageManager.rs`.
 use crate::bun_json as JSON;
@@ -948,6 +948,21 @@ impl Lockfile {
         } else {
             0
         }
+    }
+
+    /// `None` when the path does not fit a path buffer.
+    pub(crate) fn workspace_package_json_path(
+        &self,
+        workspace_path: SemverString,
+    ) -> Option<AutoAbsPathChecked> {
+        let mut path = AutoAbsPathChecked::init_top_level_dir();
+        // `join` resolves an absolute path where `append` asserts on it. bun.lock holds one for a workspace on another Windows drive.
+        path.join(&[
+            workspace_path.slice(self.buffers.string_bytes.as_slice()),
+            b"package.json",
+        ])
+        .ok()?;
+        Some(path)
     }
 
     /// The workspaces whose dependency lists `request` names: the ones that received it under `--filter` / `-r`, else the cwd's.
